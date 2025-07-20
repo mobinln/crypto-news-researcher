@@ -14,9 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class CryptoNewsAnalyzer:
-    def __init__(
-        self,
-    ):
+    def __init__(self):
         """Initialize the crypto news analyzer"""
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         self.openai_api_base = os.getenv("OPENAI_API_BASE")
@@ -53,11 +51,14 @@ class CryptoNewsAnalyzer:
                 content TEXT,
                 summary TEXT,
                 sentiment TEXT,
+                impact TEXT,
                 key_topics TEXT,
+                related_coins TEXT,
+                category TEXT,
                 source TEXT,
                 published_date DATETIME,
                 fetched_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-                analysis TEXT
+                analysis_raw TEXT
             )
         """)
 
@@ -174,7 +175,7 @@ class CryptoNewsAnalyzer:
             # Try to parse as JSON, fallback to text if it fails
             try:
                 analysis = json.loads(analysis_text)
-            except:
+            except Exception:
                 analysis = {"raw_analysis": analysis_text}
 
             return analysis
@@ -302,7 +303,7 @@ class CryptoNewsAnalyzer:
                     try:
                         topics = json.loads(key_topics)
                         context += f"   Key Topics: {', '.join(topics) if isinstance(topics, list) else topics}\n"
-                    except:
+                    except Exception:
                         pass
                 context += f"   URL: {url}\n\n"
 

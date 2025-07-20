@@ -1,5 +1,4 @@
 import threading
-import os
 from dotenv import load_dotenv
 import logging
 
@@ -93,19 +92,6 @@ class CryptoNewsCLI:
 
 
 if __name__ == "__main__":
-    # Create .env file example
-    env_example = """
-# Copy this to .env file and add your OpenAI API key
-OPENAI_API_KEY=your_openai_api_key_here
-"""
-
-    if not os.path.exists(".env"):
-        with open(".env.example", "w") as f:
-            f.write(env_example)
-        print(
-            "📝 Created .env.example file. Please copy it to .env and add your OpenAI API key."
-        )
-
     try:
         cli = CryptoNewsCLI()
         cli.run()
