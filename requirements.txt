@@ -4,3 +4,7 @@ schedule
 python-dotenv
 feedparser
 beautifulsoup4
+ipykernel
+pandas
+matplotlib
+duckdb
