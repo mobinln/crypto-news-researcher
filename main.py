@@ -3,12 +3,11 @@ import os
 from dotenv import load_dotenv
 import logging
 
-from CryptoNewsAnalyzer import CryptoNewsAnalyzer
+from crypto_news_analyzer import CryptoNewsAnalyzer
 
-# Load environment variables
+
 load_dotenv()
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
