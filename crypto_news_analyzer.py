@@ -181,6 +181,7 @@ class CryptoNewsAnalyzer:
             return analysis
 
         except Exception as e:
+            print(e)
             logger.error(f"Error analyzing article: {str(e)}")
             return {"error": f"Analysis failed: {str(e)}"}
 
@@ -193,7 +194,7 @@ class CryptoNewsAnalyzer:
             cursor.execute(
                 """
                 INSERT OR REPLACE INTO news_articles 
-                (title, url, content, summary, sentiment, key_topics, source, published_date, analysis)
+                (title, url, content, summary, sentiment, key_topics, source, published_date, analysis_raw)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 (
