@@ -1,3 +1,5 @@
+# Crypto News Researcher
+
 ## Running the project
 
 - Install `uv`
