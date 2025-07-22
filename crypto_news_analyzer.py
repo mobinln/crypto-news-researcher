@@ -120,11 +120,13 @@ class CryptoNewsAnalyzer:
             # Try to find main content
             content = ""
             for selector in [
-                "article",
-                ".article-content",
                 ".post-content",
+                ".articleContent",
+                ".article-single__content",
                 "main",
                 ".content",
+                "article",
+                ".article-content",
             ]:
                 element = soup.select_one(selector)
                 if element:
