@@ -4,6 +4,7 @@
 - `uv venv`
 - `uv pip install -r requirements.txt`
 - `uv run main.py`
+- `.venv/bin/streamlit run app.py`
 
 ## TODO
 
