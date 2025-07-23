@@ -11,3 +11,4 @@ duckdb
 streamlit
 sqlalchemy
 markitdown
+cloudscraper

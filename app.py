@@ -1,7 +1,6 @@
 import streamlit as st
 from crypto_news_analyzer import CryptoNewsAnalyzer
 import pandas as pd
-import time
 import sqlite3
 
 from dotenv import load_dotenv
@@ -75,7 +74,7 @@ with tabs[3]:
         # Show recent articles from DB
         conn = sqlite3.connect(analyzer.db_path)
         df = pd.read_sql_query(
-            "SELECT id, title, summary, sentiment, key_topics, source, published_date, url FROM news_articles ORDER BY published_date DESC LIMIT 20",
+            "SELECT id, title, summary, sentiment, key_topics, source, published_date, url FROM news_articles ORDER BY published_date DESC LIMIT 40",
             conn,
         )
         conn.close()

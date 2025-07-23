@@ -1,5 +1,4 @@
 import sqlite3
-import requests
 import feedparser
 from bs4 import BeautifulSoup
 import openai
@@ -10,6 +9,7 @@ import json
 import os
 import logging
 import concurrent.futures
+import cloudscraper
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +37,8 @@ class CryptoNewsAnalyzer:
             "theblock": "https://www.theblock.co/rss.xml",
             "cryptonews": "https://cryptonews.com/news/feed/",
         }
+
+        self.scraper = cloudscraper.create_scraper()
 
     def init_database(self):
         """Initialize SQLite database with required tables"""
@@ -108,10 +110,21 @@ class CryptoNewsAnalyzer:
     def extract_article_content(self, url):
         """Extract full article content from URL"""
         try:
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
-            }
-            response = requests.get(url, headers=headers, timeout=10)
+            num_retry = 0
+            response = None
+            while num_retry < 3:
+                try:
+                    response = self.scraper.get(url, timeout=10)
+                    response.raise_for_status()
+                    break
+                except Exception:
+                    time.sleep(2**num_retry)
+                    num_retry += 1
+                    continue
+
+            if response is None:
+                raise "Couldn't fetch the content"
+
             soup = BeautifulSoup(response.content, "html.parser")
 
             # Remove script and style elements
