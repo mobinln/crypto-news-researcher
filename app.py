@@ -5,13 +5,16 @@ import time
 import sqlite3
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 st.set_page_config(page_title="Crypto News Researcher", layout="wide")
 
+
 @st.cache_resource(show_spinner=False)
 def get_analyzer():
     return CryptoNewsAnalyzer()
+
 
 analyzer = get_analyzer()
 
@@ -26,7 +29,17 @@ with tabs[0]:
         st.metric("Total Articles", stats["total_articles"])
         st.metric("Articles Fetched Today", stats["articles_today"])
         st.subheader("Articles by Source")
-        st.bar_chart(pd.DataFrame(list(stats["articles_by_source"].items()), columns=["Source", "Count"]).set_index("Source"))
+        st.bar_chart(
+            pd.DataFrame(
+                list(stats["articles_by_source"].items()), columns=["Source", "Count"]
+            ).set_index("Source")
+        )
+        st.bar_chart(
+            pd.DataFrame(
+                list(stats["articles_by_sentiment"].items()),
+                columns=["Sentiment", "Count"],
+            ).set_index("Sentiment")
+        )
     except Exception as e:
         st.error(f"Error loading stats: {e}")
 
@@ -44,7 +57,9 @@ with tabs[1]:
 # --- Query News Tab ---
 with tabs[2]:
     st.header("💬 Query Crypto News")
-    user_query = st.text_input("Ask a question about crypto news:", "What are the latest trends in Bitcoin?")
+    user_query = st.text_input(
+        "Ask a question about crypto news:", "What are the latest trends in Bitcoin?"
+    )
     if st.button("Get AI-Powered Answer") and user_query.strip():
         with st.spinner("Analyzing news and generating answer..."):
             try:
@@ -61,12 +76,14 @@ with tabs[3]:
         conn = sqlite3.connect(analyzer.db_path)
         df = pd.read_sql_query(
             "SELECT id, title, summary, sentiment, key_topics, source, published_date, url FROM news_articles ORDER BY published_date DESC LIMIT 20",
-            conn
+            conn,
         )
         conn.close()
         if not df.empty:
             for idx, row in df.iterrows():
-                with st.expander(f"{row['title']} ({row['source']}, {row['published_date']})"):
+                with st.expander(
+                    f"{row['title']} ({row['source']}, {row['published_date']})"
+                ):
                     st.write(f"**Summary:** {row['summary']}")
                     st.write(f"**Sentiment:** {row['sentiment']}")
                     st.write(f"**Key Topics:** {row['key_topics']}")
@@ -74,4 +91,4 @@ with tabs[3]:
         else:
             st.info("No articles found in the database.")
     except Exception as e:
-        st.error(f"Error loading articles: {e}") 
+        st.error(f"Error loading articles: {e}")

@@ -9,6 +9,7 @@ import time
 import json
 import os
 import logging
+import concurrent.futures
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +109,7 @@ class CryptoNewsAnalyzer:
         """Extract full article content from URL"""
         try:
             headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
             }
             response = requests.get(url, headers=headers, timeout=10)
             soup = BeautifulSoup(response.content, "html.parser")
@@ -136,8 +137,7 @@ class CryptoNewsAnalyzer:
             if not content:
                 content = soup.get_text(strip=True)
 
-            # Truncate if too long (for API limits)
-            return content[:4000] if len(content) > 4000 else content
+            return content
 
         except Exception as e:
             logger.error(f"Error extracting content from {url}: {str(e)}")
@@ -154,7 +154,7 @@ class CryptoNewsAnalyzer:
             4. Market implications (if any)
             
             Title: {article["title"]}
-            Content: {article["content"][:3000]}
+            Content: {article["content"]}
             
             Please format your response as JSON with keys: summary, sentiment, key_topics, market_implications
             """
@@ -168,7 +168,7 @@ class CryptoNewsAnalyzer:
                     },
                     {"role": "user", "content": prompt},
                 ],
-                temperature=0.3,
+                temperature=00.3,
                 max_tokens=500,
             )
 
@@ -228,14 +228,25 @@ class CryptoNewsAnalyzer:
             logger.info(f"Processing {source_name}...")
             articles = self.fetch_news_from_rss(source_name, rss_url)
 
-            for article in articles:
-                if article["content"]:  # Only analyze if we have content
-                    analysis = self.analyze_article_with_llm(article)
-                    self.save_article_to_db(article, analysis)
+            articles_with_content = [
+                article for article in articles if article["content"]
+            ]
 
-                    # Small delay to avoid rate limiting
-                    time.sleep(1)
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+                future_to_article = {
+                    executor.submit(self.analyze_article_with_llm, article): article
+                    for article in articles_with_content
+                }
 
+                for future in concurrent.futures.as_completed(future_to_article):
+                    article = future_to_article[future]
+                    try:
+                        analysis = future.result()
+                        self.save_article_to_db(article, analysis)
+                    except Exception as exc:
+                        logger.error(
+                            f"Article {article['title']} generated an exception: {exc}"
+                        )
         logger.info("News fetch and analysis cycle completed")
 
     def query_database(self, user_query):
@@ -253,14 +264,14 @@ class CryptoNewsAnalyzer:
 
             for term in search_terms:
                 search_conditions.append(
-                    "(LOWER(title) LIKE ? OR LOWER(content) LIKE ? OR LOWER(analysis) LIKE ?)"
+                    "(LOWER(title) LIKE ? OR LOWER(content) LIKE ? OR LOWER(analysis_raw) LIKE ?)"
                 )
                 params.extend([f"%{term}%", f"%{term}%", f"%{term}%"])
 
             if search_conditions:
                 where_clause = " AND ".join(search_conditions)
                 query = f"""
-                    SELECT title, url, summary, sentiment, key_topics, source, published_date, analysis
+                    SELECT title, url, summary, sentiment, key_topics, source, published_date, analysis_raw
                     FROM news_articles 
                     WHERE {where_clause}
                     ORDER BY published_date DESC 
@@ -269,7 +280,7 @@ class CryptoNewsAnalyzer:
             else:
                 # If no specific terms, get recent articles
                 query = """
-                    SELECT title, url, summary, sentiment, key_topics, source, published_date, analysis
+                    SELECT title, url, summary, sentiment, key_topics, source, published_date, analysis_raw
                     FROM news_articles 
                     ORDER BY published_date DESC 
                     LIMIT 10
@@ -323,7 +334,7 @@ class CryptoNewsAnalyzer:
                         "content": f"Based on these recent crypto news articles, please answer this question: {user_query}\n\nNews Context:\n{context}",
                     },
                 ],
-                temperature=0.4,
+                temperature=0.5,
                 max_tokens=1000,
             )
 
@@ -365,10 +376,16 @@ class CryptoNewsAnalyzer:
         cursor.execute("SELECT source, COUNT(*) FROM news_articles GROUP BY source")
         source_stats = cursor.fetchall()
 
+        cursor.execute(
+            "SELECT sentiment, COUNT(*) FROM news_articles GROUP BY sentiment"
+        )
+        sentiment_stats = cursor.fetchall()
+
         conn.close()
 
         return {
             "total_articles": total_articles,
             "articles_today": today_articles,
             "articles_by_source": dict(source_stats),
+            "articles_by_sentiment": dict(sentiment_stats),
         }
